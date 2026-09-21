@@ -1,0 +1,25 @@
+# Xcode (el proyecto se genera con XcodeGen en CI)
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+Payload/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Python (scripts de generación de recursos)
+__pycache__/
+*.pyc
+
+# Logs
+*.log
