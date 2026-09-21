@@ -61,7 +61,18 @@ final class AlarmStoreTests: XCTestCase {
         store.saveNow()
 
         let reloaded = AlarmStore(fileURL: fileURL)
-        XCTAssertEqual(reloaded.alarms, [alarm])
+        XCTAssertEqual(reloaded.alarms.count, 1)
+        let restored = reloaded.alarms[0]
+        // Las fechas se guardan en ISO 8601 sin fracción de segundo; se comparan con tolerancia.
+        XCTAssertEqual(restored.id, alarm.id)
+        XCTAssertEqual(restored.name, alarm.name)
+        XCTAssertEqual(restored.latitude, alarm.latitude, accuracy: 1e-9)
+        XCTAssertEqual(restored.longitude, alarm.longitude, accuracy: 1e-9)
+        XCTAssertEqual(restored.radiusMeters, 300)
+        XCTAssertEqual(restored.status, .armed)
+        XCTAssertEqual(restored.preAlertEnabled, alarm.preAlertEnabled)
+        XCTAssertEqual(restored.preAlertDistanceMeters, alarm.preAlertDistanceMeters)
+        XCTAssertEqual(restored.createdAt.timeIntervalSince1970, alarm.createdAt.timeIntervalSince1970, accuracy: 1.0)
         XCTAssertEqual(reloaded.favorites.map { $0.name }, ["Trabajo"])
         XCTAssertEqual(reloaded.history.map { $0.name }, ["Terminal"])
     }

@@ -23,7 +23,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Instalar XcodeGen
         run: brew install xcodegen
@@ -33,22 +33,38 @@ jobs:
 
       - name: Ejecutar pruebas en simulador
         run: |
-          set -o pipefail
+          set +e
           xcodebuild test \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
             -derivedDataPath build \
-            -quiet \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_REQUIRED=NO 2>&1 \
+            | tee test.log \
+            | grep -E --line-buffered "(error|warning): |Test Case|Test Suite|Executed|Failing tests|TEST (FAILED|SUCCEEDED)|BUILD (FAILED|SUCCEEDED)|XCTAssert"
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::group::Últimas 300 líneas del log completo"
+            tail -n 300 test.log
+            echo "::endgroup::"
+          fi
+          exit $status
+
+      - name: Subir log de pruebas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: test.log
+          retention-days: 7
 
   build:
     name: Compilar IPA sin firmar
     runs-on: macos-26
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Instalar XcodeGen
         run: brew install xcodegen
