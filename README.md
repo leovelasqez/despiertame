@@ -36,6 +36,12 @@ Resumen: instalas AltServer en Windows, AltStore en el iPhone, descargas el `.ip
 última release y lo abres con AltStore, que lo firma con tu Apple ID gratuito. La firma caduca
 cada 7 días y AltStore la renueva cuando el iPhone y el PC están en la misma red Wi‑Fi.
 
+## Verla sin instalarla
+
+Cada release incluye también capturas, un vídeo del recorrido por la app y una compilación
+para el simulador de iOS que puedes ejecutar en el navegador con Appetize.io.
+Guía: **[docs/DEMO.md](docs/DEMO.md)**.
+
 ## Cómo funciona por dentro
 
 ```
