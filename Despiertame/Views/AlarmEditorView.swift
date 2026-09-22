@@ -94,6 +94,14 @@ struct AlarmEditorView: View {
             .onAppear {
                 if existing == nil {
                     engine.ensurePermissions()
+                    // Si ya conocemos la posición, empezar el mapa ahí en vez de esperar al GPS.
+                    if let current = engine.currentLocation {
+                        cameraPosition = .region(MKCoordinateRegion(
+                            center: current.coordinate,
+                            latitudinalMeters: 4_000,
+                            longitudinalMeters: 4_000
+                        ))
+                    }
                 }
             }
         }

@@ -62,7 +62,9 @@ final class AlarmEngine {
     /// Llamar una vez al arrancar la app. Si iOS la relanzó por un evento de ubicación,
     /// el CLLocationManager ya existe y recibirá la entrada en región.
     func start(relaunchedByLocationEvent: Bool) {
-        currentLocation = location.lastLocation
+        if let last = location.lastLocation {
+            currentLocation = last
+        }
         refreshMonitoring()
     }
 

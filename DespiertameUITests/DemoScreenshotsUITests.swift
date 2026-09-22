@@ -31,6 +31,12 @@ final class DemoScreenshotsUITests: XCTestCase {
         try? shot.pngRepresentation.write(to: outputDir.appendingPathComponent("\(name).png"))
     }
 
+    private func waitToDisappear(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "exists == false")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     private func tapIfPossible(_ element: XCUIElement, timeout: TimeInterval = 5) -> Bool {
         guard element.waitForExistence(timeout: timeout), element.isHittable else { return false }
         element.tap()
@@ -51,17 +57,23 @@ final class DemoScreenshotsUITests: XCTestCase {
         }
         // Búsqueda de lugares.
         if tapIfPossible(app.buttons["Buscar dirección o lugar"]) {
-            XCTAssertTrue(app.navigationBars["Buscar destino"].waitForExistence(timeout: 10))
+            let searchBar = app.navigationBars["Buscar destino"]
+            XCTAssertTrue(searchBar.waitForExistence(timeout: 10))
             snap(app, "04-buscar-destino")
-            _ = tapIfPossible(app.buttons["Cancelar"].firstMatch)
+            _ = tapIfPossible(searchBar.buttons["Cancelar"])
+            XCTAssertTrue(waitToDisappear(searchBar, timeout: 10))
         }
-        _ = tapIfPossible(app.buttons["Cancelar"].firstMatch)
+        let editorBar = app.navigationBars["Nueva alarma"]
+        _ = tapIfPossible(editorBar.buttons["Cancelar"])
+        XCTAssertTrue(waitToDisappear(editorBar, timeout: 10))
+        XCTAssertTrue(app.navigationBars["Despiértame"].waitForExistence(timeout: 10))
 
         // Ajustes.
         XCTAssertTrue(tapIfPossible(app.buttons["Ajustes"].firstMatch))
         XCTAssertTrue(app.navigationBars["Ajustes"].waitForExistence(timeout: 10))
         snap(app, "05-ajustes")
-        _ = tapIfPossible(app.buttons["Listo"])
+        _ = tapIfPossible(app.navigationBars["Ajustes"].buttons["Listo"])
+        XCTAssertTrue(waitToDisappear(app.navigationBars["Ajustes"], timeout: 10))
 
         // Favoritos y recientes.
         XCTAssertTrue(tapIfPossible(app.buttons["Favoritos"].firstMatch))
