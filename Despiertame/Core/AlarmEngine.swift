@@ -170,9 +170,15 @@ final class AlarmEngine {
             .min { $0.1 < $1.1 }
     }
 
+    /// Solo para el modo demostración: fija una posición sin usar el GPS.
+    func seedDemoLocation(_ loc: CLLocation) {
+        currentLocation = loc
+    }
+
     // MARK: - Permisos
 
     func ensurePermissions() {
+        guard !DemoMode.isEnabled else { return }
         if location.isNotDetermined {
             location.requestWhenInUseAuthorization()
         } else if location.authorizationStatus == .authorizedWhenInUse {
@@ -242,6 +248,17 @@ final class AlarmEngine {
         let alarms = store.alarms
         let hasOn = store.hasOnAlarms
         let hasRinging = store.hasRingingAlarms
+
+        // En modo demostración no se toca el GPS, las regiones ni los permisos;
+        // solo el audio, para que la pantalla de alarma se vea (y se oiga) en el simulador.
+        if DemoMode.isEnabled {
+            if hasRinging {
+                sound.startAlarm()
+            } else {
+                sound.stopAll()
+            }
+            return
+        }
 
         // Ubicación: en segundo plano si hay alarmas encendidas; solo en primer plano para el mapa.
         if hasOn {

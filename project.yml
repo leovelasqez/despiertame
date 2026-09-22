@@ -91,7 +91,33 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dev.leovelasqez.despiertame.tests
         GENERATE_INFOPLIST_FILE: "YES"
 
+  DespiertameUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: DespiertameUITests
+    dependencies:
+      - target: Despiertame
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.leovelasqez.despiertame.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: Despiertame
+
 schemes:
+  DespiertameDemo:
+    build:
+      targets:
+        Despiertame: all
+        DespiertameUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - DespiertameUITests
+
   Despiertame:
     build:
       targets:

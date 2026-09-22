@@ -111,5 +111,93 @@ jobs:
           TAG="build-${{ github.run_number }}"
           gh release create "$TAG" Despiertame.ipa \
             --title "Despiértame · build ${{ github.run_number }}" \
-            --notes "IPA sin firmar para instalar con AltStore o SideStore. Commit ${{ github.sha }}." \
+            --notes "IPA sin firmar para instalar con AltStore o SideStore. Commit ${{ github.sha }}. La app para simulador (Appetize.io), las capturas y el vídeo de demostración se añaden al terminar el job de demo." \
             --latest
+
+  demo:
+    name: Demo en simulador (app para Appetize, capturas y vídeo)
+    runs-on: macos-26
+    timeout-minutes: 45
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar proyecto Xcode
+        run: xcodegen generate
+
+      - name: Compilar app para simulador (Appetize.io)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build-sim \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+          APP="build-sim/Build/Products/Debug-iphonesimulator/Despiertame.app"
+          test -d "$APP"
+          ditto -c -k --keepParent "$APP" Despiertame-simulador.zip
+          ls -la Despiertame-simulador.zip
+
+      - name: Arrancar simulador y empezar a grabar vídeo
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import sys,json; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for v in d.values() for x in v if x['name']=='iPhone 17'))")
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
+          mkdir -p demo
+          nohup xcrun simctl io "$UDID" recordVideo --codec h264 --force demo/despiertame-demo.mp4 > /dev/null 2>&1 &
+          echo "REC_PID=$!" >> "$GITHUB_ENV"
+          sleep 2
+
+      - name: Recorrido automático con capturas (UI tests)
+        run: |
+          set +e
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme DespiertameDemo \
+            -destination "id=$UDID" \
+            -derivedDataPath build-sim \
+            CODE_SIGNING_ALLOWED=NO 2>&1 \
+            | tee demo/uitest.log \
+            | grep -E --line-buffered "(error|warning): |Test Case|Executed|TEST (FAILED|SUCCEEDED)|BUILD (FAILED|SUCCEEDED)"
+          status=${PIPESTATUS[0]}
+          kill -INT "$REC_PID" 2>/dev/null || true
+          sleep 6
+          if [ -d /tmp/despiertame-screenshots ]; then cp -R /tmp/despiertame-screenshots demo/capturas; fi
+          ls -la demo demo/capturas 2>/dev/null || true
+          if [ "$status" -ne 0 ]; then
+            echo "::group::Últimas 200 líneas del log"
+            tail -n 200 demo/uitest.log
+            echo "::endgroup::"
+          fi
+          exit $status
+
+      - name: Subir demo (capturas, vídeo y app para simulador)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Despiertame-demo
+          path: |
+            demo/
+            Despiertame-simulador.zip
+          retention-days: 30
+
+      - name: Añadir demo a la release (rama main)
+        if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-${{ github.run_number }}"
+          FILES="Despiertame-simulador.zip"
+          [ -f demo/despiertame-demo.mp4 ] && FILES="$FILES demo/despiertame-demo.mp4"
+          if [ -d demo/capturas ]; then (cd demo && zip -qr ../Despiertame-capturas.zip capturas) && FILES="$FILES Despiertame-capturas.zip"; fi
+          gh release upload "$TAG" $FILES --clobber

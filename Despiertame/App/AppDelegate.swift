@@ -10,6 +10,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         let relaunchedByLocation = launchOptions?[.location] != nil
+        if DemoMode.isEnabled {
+            DemoMode.seed(into: AlarmEngine.shared)
+        }
         AlarmEngine.shared.start(relaunchedByLocationEvent: relaunchedByLocation)
         return true
     }
