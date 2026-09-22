@@ -81,6 +81,19 @@ enum DemoMode {
             radiusMeters: 1_000
         ))
 
-        engine.seedDemoLocation(demoLocation)
+        if startsRinging {
+            // Ya dentro del radio de la terminal (unos 350 m), para que la pantalla sea coherente.
+            engine.seedDemoLocation(CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: 4.6590, longitude: -74.1100),
+                altitude: 2_600,
+                horizontalAccuracy: 8,
+                verticalAccuracy: 10,
+                course: 200,
+                speed: 6,
+                timestamp: Date()
+            ))
+        } else {
+            engine.seedDemoLocation(demoLocation)
+        }
     }
 }
